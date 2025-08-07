@@ -32,5 +32,17 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>()
            .HasIndex(u => u.Username)
            .IsUnique();
+
+        modelBuilder.Entity<UserJob>()
+            .HasIndex(uj => uj.DateTimeCreated)
+            .HasDatabaseName("IX_UserJobs_DateTimeCreated");
+
+        modelBuilder.Entity<UserJob>()
+            .HasIndex(uj => new { uj.UserId, uj.DateTimeCreated })
+            .HasDatabaseName("IX_UserJobs_UserId_DateTimeCreated");
+
+        modelBuilder.Entity<UserJob>()
+            .HasIndex(uj => uj.UserId)
+            .HasDatabaseName("IX_UserJobs_UserId");
     }
 }
