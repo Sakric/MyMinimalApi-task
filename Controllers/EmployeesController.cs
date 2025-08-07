@@ -34,15 +34,27 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpGet("above-average")]
-    public async Task<IActionResult> GetAboveAverageEmployees()
+    public async Task<IActionResult> GetAboveAverageEmployees(
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null)
     {
+        var start = startDate ?? DateTime.UtcNow.AddYears(-1);
+        var end = endDate ?? DateTime.UtcNow;
+
+        if (start > end)
+        {
+            return BadRequest("Start date cannot be after end date.");
+        }
+
         var averageJobCount = await _context.UserJobs
+            .Where(uj => uj.DateTimeCreated >= start && uj.DateTimeCreated <= end)
             .GroupBy(uj => uj.UserId)
             .Select(g => g.Count())
             .AverageAsync();
 
         var employees = await _context.UserJobs
             .Include(uj => uj.User)
+            .Where(uj => uj.DateTimeCreated >= start && uj.DateTimeCreated <= end)
             .GroupBy(uj => new { uj.UserId, uj.User.Username, uj.User.Lastname })
             .Select(g => new
             {
@@ -84,7 +96,7 @@ public class EmployeesController : ControllerBase
                 Last_name = g.Key.Lastname,
                 WorkCount30Days = g.Count(x => x.DateTimeCreated >= before30Days),
                 WorkCount6Months = g.Count(),
-                SixMonthsCountAverage = g.Count() / 6.0
+                SixMonthsCountAverage = g.Count() / 6
             })
             .Where(x => x.WorkCount30Days > x.SixMonthsCountAverage)
             .OrderByDescending(x => x.WorkCount30Days)
